@@ -1,0 +1,15 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: datahub
+  description: The Metadata Platform for the Modern Data Stack
+  annotations:
+    github.com/project-slug: loadsmart/blocks
+  tags:
+    - java
+    - python
+    - javascript
+spec:
+  type: service
+  lifecycle: experimental
+  owner: data-engineering
