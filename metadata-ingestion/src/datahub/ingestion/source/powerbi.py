@@ -110,7 +110,7 @@ class PowerBiAPIConfig(EnvBasedSourceConfigBase):
     # Organsation Identifier
     tenant_id: str = pydantic.Field(description="PowerBI tenant identifier")
     # PowerBi workspace identifier
-    workspace_id: List[str] = pydantic.Field(description="PowerBI workspace identifier")
+    workspace_id: str = pydantic.Field(description="PowerBI workspace identifier")
     # Dataset type mapping
     dataset_type_mapping: Dict[str, str] = pydantic.Field(
         description="Mapping of PowerBI datasource type to DataHub supported data-sources. See Quickstart Recipe for mapping"
@@ -1658,54 +1658,54 @@ class PowerBiDashboardSource(Source):
         """
         LOGGER.info("PowerBi plugin execution is started")
         # Fetch PowerBi workspace for given each workspace identifier passed in the list
-        for work_id in self.source_config.workspace_id:
-            LOGGER.info(f"Extracting WorkspaceID: {work_id}")
+        work_id = self.source_config.workspace_id
+        LOGGER.info(f"Extracting WorkspaceID: {work_id}")
 
-            # Fetch PowerBi workspace for given workspace identifier
-            workspace = self.powerbi_client.get_workspace(work_id)
+        # Fetch PowerBi workspace for given workspace identifier
+        workspace = self.powerbi_client.get_workspace(work_id)
 
-            for dashboard in workspace.dashboards:
+        for dashboard in workspace.dashboards:
 
-                try:
-                    # Fetch PowerBi users for dashboards
-                    dashboard.users = self.powerbi_client.get_dashboard_users(dashboard)
-                    # Increase dashboard and tiles count in report
-                    self.reporter.report_dashboards_scanned()
-                    self.reporter.report_charts_scanned(count=len(dashboard.tiles))
-                except Exception as e:
-                    message = (
-                        f"Error ({e}) occurred while loading dashboard {dashboard.displayName}(id={dashboard.id}) tiles."
-                    )
+            try:
+                # Fetch PowerBi users for dashboards
+                dashboard.users = self.powerbi_client.get_dashboard_users(dashboard)
+                # Increase dashboard and tiles count in report
+                self.reporter.report_dashboards_scanned()
+                self.reporter.report_charts_scanned(count=len(dashboard.tiles))
+            except Exception as e:
+                message = (
+                    f"Error ({e}) occurred while loading dashboard {dashboard.displayName}(id={dashboard.id}) tiles."
+                )
 
-                    LOGGER.exception(message, e)
-                    self.reporter.report_warning(dashboard.id, message)
-                # Convert PowerBi Dashboard and child entities to Datahub work unit to ingest into Datahub
-                workunits = self.mapper.to_datahub_work_units(dashboard)
-                for workunit in workunits:
-                    # Add workunit to report
-                    self.reporter.report_workunit(workunit)
-                    # Return workunit to Datahub Ingestion framework
-                    yield workunit
+                LOGGER.exception(message, e)
+                self.reporter.report_warning(dashboard.id, message)
+            # Convert PowerBi Dashboard and child entities to Datahub work unit to ingest into Datahub
+            workunits = self.mapper.to_datahub_work_units(dashboard)
+            for workunit in workunits:
+                # Add workunit to report
+                self.reporter.report_workunit(workunit)
+                # Return workunit to Datahub Ingestion framework
+                yield workunit
 
-            for report in workspace.reports:
-                try:
-                    # Fetch PowerBI users for reports
-                    report.users = self.powerbi_client.get_report_users(workspace, report)  # TODO
-                    # Increase dashboard and tiles count in report
-                    self.reporter.report_dashboards_scanned()
-                    self.reporter.report_charts_scanned(count=len(report.pages))
-                except Exception as e:
-                    message = f"Error ({e}) occurred while loading report {report.name}(id={report.id}) pages."
-                    LOGGER.exception(message, e)
-                    self.reporter.report_warning(report.id, message)
+        for report in workspace.reports:
+            try:
+                # Fetch PowerBI users for reports
+                report.users = self.powerbi_client.get_report_users(workspace, report)  # TODO
+                # Increase dashboard and tiles count in report
+                self.reporter.report_dashboards_scanned()
+                self.reporter.report_charts_scanned(count=len(report.pages))
+            except Exception as e:
+                message = f"Error ({e}) occurred while loading report {report.name}(id={report.id}) pages."
+                LOGGER.exception(message, e)
+                self.reporter.report_warning(report.id, message)
 
-                # Convert PowerBI Report and child entities to Datahub work unit to ingest into Datahub
-                workunits = self.mapper.to_datahub_work_units_from_report(report)
-                for workunit in workunits:
-                    # Add workunit to report
-                    self.reporter.report_workunit(workunit)
-                    # Return workunit to Datahub Ingestion framework
-                    yield workunit
+            # Convert PowerBI Report and child entities to Datahub work unit to ingest into Datahub
+            workunits = self.mapper.to_datahub_work_units_from_report(report)
+            for workunit in workunits:
+                # Add workunit to report
+                self.reporter.report_workunit(workunit)
+                # Return workunit to Datahub Ingestion framework
+                yield workunit
 
     def get_report(self) -> SourceReport:
         return self.reporter
