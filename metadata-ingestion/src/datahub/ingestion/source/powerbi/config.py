@@ -43,6 +43,7 @@ class Constant:
     WORKSPACE_ID = "workspaceId"
     DASHBOARD_ID = "powerbi.linkedin.com/dashboards/{}"
     DATASET_ID = "datasetId"
+    DATASET_WORKSPACE_ID = "datasetWorkspaceId"
     REPORT_ID = "reportId"
     SCAN_ID = "ScanId"
     Dataset_URN = "DatasetURN"
@@ -101,6 +102,7 @@ class Constant:
     CHART_COUNT = "chartCount"
     WORKSPACE_NAME = "workspaceName"
     DATASET_WEB_URL = "datasetWebUrl"
+    TILES = "tiles"
 
 
 @dataclass

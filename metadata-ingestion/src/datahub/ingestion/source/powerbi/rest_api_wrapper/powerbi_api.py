@@ -250,7 +250,19 @@ class PowerBiAPI:
             return []
 
         return [endorsement]
-
+    
+    def _get_external_dataset(self, instances: list[dict], dataset_map: dict, workspace_id: str) -> list[PowerBIDataset]:
+        return [
+            self._get_resolver().get_dataset(
+                workspace_id=instance[Constant.DATASET_WORKSPACE_ID],
+                dataset_id=instance[Constant.DATASET_ID],
+            )
+            for instance in instances
+            if (Constant.DATASET_WORKSPACE_ID in instance
+                and instance[Constant.DATASET_WORKSPACE_ID] != workspace_id
+                and instance[Constant.DATASET_ID] not in dataset_map)
+        ]
+        
     def _get_workspace_datasets(self, scan_result: Optional[dict]) -> dict:
         """
         Filter out "dataset" from scan_result and return Dataset instance set
@@ -307,6 +319,31 @@ class PowerBiAPI:
                         expression=expression,
                     )
                 )
+
+        # look for datasets of other workspaces in tiles
+        dashboards: Optional[Any] = scan_result.get(Constant.DASHBOARDS)
+        if dashboards is not None and len(dashboards) > 0:
+            for dashboard in dashboards:
+                tiles: Optional[Any] = dashboard.get(Constant.TILES)
+                if tiles is not None and len(tiles) > 0:
+                    tile_dataset_instances = self._get_external_dataset(
+                        instances=tiles, 
+                        dataset_map=dataset_map,
+                        workspace_id=scan_result[Constant.ID]
+                    )
+                    for tile_dataset_instance in tile_dataset_instances:
+                        dataset_map[tile_dataset_instance.id] = tile_dataset_instance
+
+        # look for datasets of other workspaces in reports
+        reports: Optional[Any] = scan_result.get(Constant.REPORTS)
+        if reports is not None and len(reports) > 0:
+            report_dataset_instances = self._get_external_dataset(
+                        instances=reports, 
+                        dataset_map=dataset_map,
+                        workspace_id=scan_result[Constant.ID]
+                    )
+            for report_dataset_instance in report_dataset_instances:
+                dataset_map[report_dataset_instance.id] = report_dataset_instance
 
         return dataset_map
 
