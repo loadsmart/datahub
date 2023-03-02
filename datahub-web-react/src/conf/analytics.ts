@@ -4,7 +4,7 @@ const config: any = {
     //    trackingId: 'UA-24123123-01',
     // },
     mixpanel: {
-        token: '9720ed0d307ff94c9977ced8fe0c5f2a',
+        token: 'replace-me',
     },
     // amplitude: {
     //    apiKey: 'c5c212632315d19c752ab083bc7c92ff',
