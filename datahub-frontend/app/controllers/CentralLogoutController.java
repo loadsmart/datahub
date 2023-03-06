@@ -37,8 +37,7 @@ public class CentralLogoutController extends LogoutController {
     if (_isOidcEnabled) {
       try {
         return Results.redirect(DEFAULT_BASE_URL_PATH)
-                .removingFromSession(request)
-                .withNewSession();
+                .removingFromSession(request);
       } catch (Exception e) {
         log.error("Caught exception while attempting to perform SSO logout! It's likely that SSO integration is mis-configured.", e);
         return redirect(

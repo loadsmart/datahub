@@ -297,7 +297,8 @@ public class AuthenticationController extends Controller {
 
     private void configurePac4jSessionStore(PlayWebContext context, Client client, String redirectPath) {
         // Set the originally requested path for post-auth redirection.
-        _playSessionStore.set(context, Pac4jConstants.REQUESTED_URL, new FoundAction(redirectPath));
+        // Commenting this out to avoid https://github.com/datahub-project/datahub/issues/7221
+        // _playSessionStore.set(context, Pac4jConstants.REQUESTED_URL, new FoundAction(redirectPath));
         // This is to prevent previous login attempts from being cached.
         // We replicate the logic here, which is buried in the Pac4j client.
         if (_playSessionStore.get(context, client.getName() + ATTEMPTED_AUTHENTICATION_SUFFIX) != null) {
