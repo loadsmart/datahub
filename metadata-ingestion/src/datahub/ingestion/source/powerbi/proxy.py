@@ -285,6 +285,7 @@ class PowerBiAPI:
                 principalType=instance.get("principalType"),
             )
             for instance in users_dict
+            if self.__config.users_filter.allowed(instance.get("identifier"))
         ]
 
         return users
@@ -321,7 +322,12 @@ class PowerBiAPI:
             logger.warning(message)
             logger.warning(f"{Constant.WorkspaceId}={workspace_id}")
             logger.warning(f"{Constant.ReportId}={report_id}")
-            raise ConnectionError(message)
+            logger.warning("{}={}".format(Constant.HTTP_RESPONSE_TEXT, response.text))
+            logger.warning(
+                "{}={}".format(Constant.HTTP_RESPONSE_STATUS_CODE, response.status_code)
+            )
+            # raise ConnectionError(message)
+            return None
 
         response_dict = response.json()
 
@@ -335,7 +341,9 @@ class PowerBiAPI:
             pages=[],
             tags=[],
             dataset=self.get_dataset(
-                workspace_id=workspace_id,
+                workspace_id=(response_dict.get(Constant.DATASET_WORKSPACE_ID) 
+                              if Constant.DATASET_WORKSPACE_ID in response_dict 
+                              else workspace_id),
                 dataset_id=response_dict.get("datasetId"),
                 workspace_name=workspace_name,
             ),
@@ -398,11 +406,12 @@ class PowerBiAPI:
         if response.status_code != 200:
             logger.warning("Failed to fetch dashboard list from power-bi for")
             logger.warning(f"{Constant.WorkspaceId}={workspace.id}")
-            raise ConnectionError(
-                "Failed to fetch the dashboard list from the power-bi"
-            )
-
-        dashboards_dict: List[Any] = response.json()[Constant.VALUE]
+            # raise ConnectionError(
+            #     "Failed to fetch the dashboard list from the power-bi"
+            # )
+            dashboards_dict: List[Any] = {"value": []}
+        else:
+            dashboards_dict: List[Any] = response.json()[Constant.VALUE]
 
         # Iterate through response and create a list of PowerBiAPI.Dashboard
         dashboards: List[PowerBiAPI.Dashboard] = [
@@ -488,9 +497,11 @@ class PowerBiAPI:
             logger.warning(message)
             logger.warning(f"{Constant.WorkspaceId}={workspace_id}")
             logger.warning(f"{Constant.DatasetId}={dataset_id}")
-            raise ConnectionError(message)
+            # raise ConnectionError(message)
+            response_dict = {"id": "", "name": "", "webUrl": None}
+        else:
+            response_dict = response.json()
 
-        response_dict = response.json()
         logger.debug("datasets = {}".format(response_dict))
         # PowerBi Always return the webURL, in-case if it is None then setting complete webURL to None instead of
         # None/details
@@ -541,10 +552,11 @@ class PowerBiAPI:
             logger.warning(
                 "{}={}".format(Constant.HTTP_RESPONSE_STATUS_CODE, response.status_code)
             )
+            # raise ConnectionError(message)
+            res = {"value": []}
+        else:
+            res = response.json()
 
-            raise ConnectionError(message)
-
-        res = response.json()
         value = res["value"]
         if len(value) == 0:
             logger.info(
@@ -585,7 +597,7 @@ class PowerBiAPI:
             """
             report_fields = {
                 "dataset": (
-                    workspace.datasets[tile_instance.get("datasetId")]
+                    workspace.datasets.get(tile_instance.get("datasetId"))
                     if tile_instance.get("datasetId") is not None
                     else None
                 ),
@@ -684,9 +696,15 @@ class PowerBiAPI:
             message: str = "Failed to fetch reports from power-bi for"
             logger.warning(message)
             logger.warning(f"{Constant.WorkspaceId}={workspace_id}")
-            raise ConnectionError(message)
+            logger.warning("{}={}".format(Constant.HTTP_RESPONSE_TEXT, response.text))
+            logger.warning(
+                "{}={}".format(Constant.HTTP_RESPONSE_STATUS_CODE, response.status_code)
+            )
+            # raise ConnectionError(message)
+            response_dict = {"value": []}
+        else:
+            response_dict = response.json()
 
-        response_dict = response.json()
         return [
             PowerBiAPI.Page(
                 id="{}.{}".format(report_id, raw_instance["name"].replace(" ", "_")),
@@ -725,9 +743,15 @@ class PowerBiAPI:
             message: str = "Failed to fetch reports from power-bi for"
             logger.warning(message)
             logger.warning(f"{Constant.WorkspaceId}={workspace.id}")
-            raise ConnectionError(message)
+            logger.warning("{}={}".format(Constant.HTTP_RESPONSE_TEXT, response.text))
+            logger.warning(
+                "{}={}".format(Constant.HTTP_RESPONSE_STATUS_CODE, response.status_code)
+            )
+            # raise ConnectionError(message)
+            response_dict = {"value": []}
+        else:
+            response_dict = response.json()
 
-        response_dict = response.json()
         reports: List["PowerBiAPI.Report"] = [
             PowerBiAPI.Report(
                 id=raw_instance["id"],
@@ -893,6 +917,20 @@ class PowerBiAPI:
 
             return res.json()["workspaces"][0]
 
+        def _get_external_dataset(instances: list[dict], dataset_map: dict, workspace_id: str, workspace_name: str) -> list[PowerBiAPI.PowerBIDataset]:
+            return [
+                self.get_dataset(
+                    workspace_id=instance[Constant.DATASET_WORKSPACE_ID],
+                    dataset_id=instance["datasetId"],
+                    workspace_name=workspace_name,
+                )
+                for instance in instances
+                if (Constant.DATASET_WORKSPACE_ID in instance
+                    and instance[Constant.DATASET_WORKSPACE_ID] != workspace_id
+                    and instance["datasetId"] not in dataset_map)
+            ]
+
+
         def json_to_dataset_map(scan_result: dict) -> dict:
             """
             Filter out "dataset" from scan_result and return PowerBiAPI.Dataset instance set
@@ -939,6 +977,33 @@ class PowerBiAPI:
                             expression=expression,
                         )
                     )
+
+            # look for datasets of other workspaces in tiles
+            dashboards: Optional[Any] = scan_result.get("dashboards")
+            if dashboards is not None and len(dashboards) > 0:
+                for dashboard in dashboards:
+                    tiles: Optional[Any] = dashboard.get(Constant.TILES)
+                    if tiles is not None and len(tiles) > 0:
+                        tile_dataset_instances = _get_external_dataset(
+                            instances=tiles,
+                            dataset_map=dataset_map,
+                            workspace_id=scan_result["id"],
+                            workspace_name=scan_result["name"]
+                        )
+                        for tile_dataset_instance in tile_dataset_instances:
+                            dataset_map[tile_dataset_instance.id] = tile_dataset_instance
+
+            # look for datasets of other workspaces in reports
+            reports: Optional[Any] = scan_result.get("reports")
+            if reports is not None and len(reports) > 0:
+                report_dataset_instances = _get_external_dataset(
+                            instances=reports,
+                            dataset_map=dataset_map,
+                            workspace_id=scan_result["id"],
+                            workspace_name=scan_result["name"]
+                        )
+                for report_dataset_instance in report_dataset_instances:
+                    dataset_map[report_dataset_instance.id] = report_dataset_instance
 
             return dataset_map
 
