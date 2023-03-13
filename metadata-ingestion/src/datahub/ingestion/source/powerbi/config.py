@@ -36,6 +36,7 @@ class Constant:
     WorkspaceId = "WorkspaceId"
     DashboardId = "DashboardId"
     DatasetId = "DatasetId"
+    DATASET_WORKSPACE_ID = "datasetWorkspaceId"
     ReportId = "ReportId"
     SCAN_ID = "ScanId"
     Dataset_URN = "DatasetURN"
@@ -65,6 +66,7 @@ class Constant:
     ID = "ID"
     HTTP_RESPONSE_TEXT = "HttpResponseText"
     HTTP_RESPONSE_STATUS_CODE = "HttpResponseStatusCode"
+    TILES = "tiles"
 
 
 @dataclass
@@ -165,6 +167,10 @@ class PowerBiAPIConfig(EnvBasedSourceConfigBase):
     convert_lineage_urns_to_lowercase: bool = pydantic.Field(
         default=True,
         description="Whether to convert the urns of ingested lineage dataset to lowercase",
+    )
+    users_filter: AllowDenyPattern = pydantic.Field(
+        default=AllowDenyPattern.allow_all(),
+        description="List of users to filter",
     )
 
     @validator("dataset_type_mapping")
