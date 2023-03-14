@@ -44,14 +44,14 @@ PAGE_SIZE = 50
 
 chart_type_from_viz_type = {
     "line": ChartTypeClass.LINE,
-    "big_number": ChartTypeClass.LINE,
+    "big_number": ChartTypeClass.TEXT,
     "table": ChartTypeClass.TABLE,
     "dist_bar": ChartTypeClass.BAR,
     "area": ChartTypeClass.AREA,
     "bar": ChartTypeClass.BAR,
     "pie": ChartTypeClass.PIE,
     "histogram": ChartTypeClass.HISTOGRAM,
-    "big_number_total": ChartTypeClass.LINE,
+    "big_number_total": ChartTypeClass.TEXT,
     "dual_line": ChartTypeClass.LINE,
     "line_multi": ChartTypeClass.LINE,
     "treemap": ChartTypeClass.AREA,
@@ -62,7 +62,7 @@ chart_type_from_viz_type = {
     "pivot_table_v2": ChartTypeClass.TABLE,
     "echarts_timeseries_smooth": ChartTypeClass.LINE,
     "echarts_area": ChartTypeClass.AREA,
-    "echarts_timeseries": ChartTypeClass.LINE,
+    "echarts_timeseries": ChartTypeClass.LINE
 }
 
 
@@ -337,7 +337,7 @@ class SupersetSource(Source):
             created=AuditStamp(time=modified_ts, actor=modified_actor),
             lastModified=AuditStamp(time=modified_ts, actor=modified_actor),
         )
-        chart_type = chart_type_from_viz_type.get(chart_data.get("viz_type", ""))
+        chart_type = chart_type_from_viz_type.get(chart_data.get("viz_type"))
 
         chart_url = f"{self.config.display_uri}{chart_data.get('url', '')}"
 
@@ -358,22 +358,39 @@ class SupersetSource(Source):
         if isinstance(group_bys, str):
             group_bys = [group_bys]
 
-        custom_properties = {
-            "Chart Type": chart_type,
-            "Metrics": ", ".join(metrics),
-            "Filters": ", ".join(filters),
-            "Dimensions": ", ".join(map(str, group_bys)),
-        }
+        if chart_type is None:
+            custom_properties = {
+                "Metrics": ", ".join(metrics),
+                "Filters": ", ".join(filters),
+                "Dimensions": ", ".join(map(str, group_bys)),
+            }
 
-        chart_info = ChartInfoClass(
-            type=chart_type,
-            description=description,
-            title=title,
-            lastModified=last_modified,
-            chartUrl=chart_url,
-            inputs=[datasource_urn] if datasource_urn else None,
-            customProperties=custom_properties,
-        )
+            chart_info = ChartInfoClass(
+                description=description,
+                title=title,
+                lastModified=last_modified,
+                chartUrl=chart_url,
+                inputs=[datasource_urn] if datasource_urn else None,
+                customProperties=custom_properties,
+            )
+        else:
+            custom_properties = {
+                "Chart Type": chart_type,
+                "Metrics": ", ".join(metrics),
+                "Filters": ", ".join(filters),
+                "Dimensions": ", ".join(map(str, group_bys)),
+            }
+
+            chart_info = ChartInfoClass(
+                type=chart_type,
+                description=description,
+                title=title,
+                lastModified=last_modified,
+                chartUrl=chart_url,
+                inputs=[datasource_urn] if datasource_urn else None,
+                customProperties=custom_properties,
+            )
+            
         chart_snapshot.aspects.append(chart_info)
         chart_snapshot.aspects.append(ownership)
         return chart_snapshot
