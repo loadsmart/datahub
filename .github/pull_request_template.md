@@ -1,36 +1,42 @@
-# ROCK-<num>: <issue title>
+## Motivation and context for the change
 
-## Description
+> Describe the motivation against creating this change and, if applicable, describe the current behavior and any relevant screenshots or diagrams (if applicable).
 
-_please describe your changes here to help reviewer_
+## A clear description of the change
 
-## Checklist
-
-This PR complies to:
-
-- [ ] Documented (API SPECs, software architecture changes, and code comments where necessary)
-- [ ] Smallest size possible
-- [ ] Synced branch with master
-- [ ] Tested locally
-- [ ] Tested on QA
-- [ ] Clog entry (if needed)
-- [ ] Production-ready
-
-## Requirements
-
-_please list any other PRs that should be merged before this_
-
-* _link 1_
-* _link 2_
-
-## How to test
-
-_please provide instructions for manual testing this PR_
+> Describe the change, including new behavior, possible impacts, and any relevant screenshots or diagrams (if applicable).
 
 ## Showroom
 
-_please include a video or screenshot_
+> Please include a video or screenshot.
 
-## Metrics
+## Testing
 
-_please provide a list of metric or analytics implemented in this PR - if applicable_
+> Inform whether or not the change is covered with automated tests.
+
+- [ ] The change is covered with automated tests
+
+#### Testing instructions
+
+> If the change isn't covered with automated tests, provide a detailed list of steps for the reviewer to test it. You may remove this section in case of automated tests.
+
+## Rollback
+
+- [ ] The change can be automatically rolled back
+
+#### Rollback instructions
+
+> If the rollback cannot be performed automatically, provide a detailed list of the steps needed to complete a rollback. Add any relevant link to the documentation if applicable. You may remove this section in case of support for automated rollback.
+
+## Jira Ticket
+
+> Please include Jira Ticket.
+
+## Change Management Labels
+
+> Based on the Loadsmart Change Management Policy, every change should be documented. The documentation must include the type of the change. Check that this PR is labeled with at least one of the following labels:
+
+- `change-type: infrastructure`
+- `change-type: source code`
+- `change-type: database`
+- `change-type: documentation`
